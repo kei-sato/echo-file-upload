@@ -13,11 +13,22 @@ openssl req -x509 -sha256 -nodes -days 3650 -newkey rsa:2048 -keyout ca.key -out
 
 : create certificate with a sign of the ca
 openssl genrsa -out cert.key 2048
-openssl req -new -key cert.key -out cert.csr -subj "/CN=www.example.com"
+openssl req -new -key cert.key -out cert.csr -subj "/CN=localhost"
 openssl x509 -req -sha256 -days 3650 -CA ca.crt -CAkey ca.key -CAcreateserial -in cert.csr -out cert.crt
 
+: create client certificate
+openssl genrsa -out client.key 2048
+openssl req -new -key client.key -out client.csr -subj "/CN=localhost"
+openssl x509 -req -sha256 -days 3650 -CA ca.crt -CAkey ca.key -CAcreateserial -in client.csr -out client.crt
+
 : remove useless file
-rm cert.csr
+rm *.csr
+```
+
+# text connection with openssl 
+
+```
+openssl s_client -connect localhost:8080 -cert client.crt -key client.key < /dev/null
 ```
 
 # build

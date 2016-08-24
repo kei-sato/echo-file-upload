@@ -3,9 +3,13 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"path"
 
+	"crypto/tls"
+	"crypto/x509"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -50,6 +54,39 @@ func upload(c echo.Context) error {
 	return c.HTML(http.StatusOK, fmt.Sprintf("<p>File %s uploaded successfully with fields name=%s and email=%s.</p>", file.Filename, name, email))
 }
 
+func createTlsConfig() *tls.Config {
+	certBytes, err := ioutil.ReadFile("./cert/ca.crt")
+
+	if err != nil {
+		log.Fatalln("Unable to read ca.crt", err)
+	}
+
+	clientCertPool := x509.NewCertPool()
+	if ok := clientCertPool.AppendCertsFromPEM(certBytes); !ok {
+		log.Fatalln("Unable to add certificate to certificate pool")
+	}
+
+	tlsConfig := &tls.Config{
+		// Reject any TLS certificate that cannot be validated
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		// Ensure that we only use our "CA" to validate certificates
+		ClientCAs: clientCertPool,
+		// support ECDHE, RSA, AES128, AES256, SHA256, SHA384
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		},
+		// Force it server side
+		PreferServerCipherSuites: true,
+		// TLS 1.2 because we can
+		MinVersion: tls.VersionTLS12,
+	}
+
+	tlsConfig.BuildNameToCertificate()
+
+	return tlsConfig
+}
+
 func main() {
 	e := echo.New()
 
@@ -59,5 +96,8 @@ func main() {
 
 	e.POST("/upload", upload)
 
-	e.Run(standard.WithTLS(":8080", "cert/cert.crt", "cert/cert.key"))
+	server := standard.WithTLS(":8080", "cert/cert.crt", "cert/cert.key")
+	server.TLSConfig = createTlsConfig()
+
+	e.Run(server)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 
 	"net/http"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
 )
+
+var UPLOAD_DIR string = "upload"
 
 func upload(c echo.Context) error {
 	// Read form fields
@@ -33,7 +36,7 @@ func upload(c echo.Context) error {
 	defer src.Close()
 
 	// Destination
-	dst, err := os.Create(file.Filename)
+	dst, err := os.Create(path.Join(UPLOAD_DIR, file.Filename))
 	if err != nil {
 		return err
 	}

@@ -59,5 +59,5 @@ func main() {
 
 	e.POST("/upload", upload)
 
-	e.Run(standard.New(":8080"))
+	e.Run(standard.WithTLS(":8080", "cert/cert.crt", "cert/cert.key"))
 }
